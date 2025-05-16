@@ -48,3 +48,8 @@ MAKE <- function(){
   quarto::quarto_render('./manuscript/manuscript.qmd')
 }
 
+
+REMAKE <- function(){
+  UNMAKE()
+  MAKE()
+}
