@@ -1,0 +1,36 @@
+---
+title: "Writing Manuscripts with Quarto: A Workshop!"
+
+author:
+  name: Luke Hearon
+  affiliation: The Ohio State University
+  orcid: 0009-0004-3775-0849
+
+format: 
+  html:
+    link-citations: true
+    self-contained: true
+
+execute:
+  echo: false
+  include: false
+
+project:
+  execute-dir: project
+
+crossref:
+  fig-title: 'Figure'
+  fig-labels: arabic
+  title-delim: '.'
+
+csl: 'journal-of-insect-science.csl'
+bibliography: references.bib
+---
+
+# Introduction
+
+# Methods
+
+# Results
+
+# Discussion
