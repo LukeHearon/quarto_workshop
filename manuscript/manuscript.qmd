@@ -76,7 +76,7 @@ Graduate students were ~~lured~~ recruited to the study via the advertisement of
 
 ```{r results_utils}
 round_p <- function(p){
-  p_digit_max <- 3 # don't report any more decimals than p<0.001
+  p_digit_max <- 2 # don't report any more decimals than p<0.01
   p_min_str <- format(10^(-p_digit_max), scientific=F)
 
   tofirst <- p %>% 

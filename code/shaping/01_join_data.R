@@ -2,10 +2,10 @@ library(dplyr)
 
 dir_raw <- './data/raw'
 
-tasting <- file.path(dir_raw, 'tasting.csv') %>% 
+tasting <- file.path(dir_raw, 'tasting_full.csv') %>% 
   read.csv()
 
-survey <- file.path(dir_raw, 'survey.csv') %>% 
+survey <- file.path(dir_raw, 'survey_full.csv') %>% 
   read.csv()
 
 data_join <- full_join(tasting, survey, by='participant_id')
