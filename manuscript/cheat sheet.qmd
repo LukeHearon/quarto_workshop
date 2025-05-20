@@ -1,0 +1,219 @@
+---
+title: "Cheat sheet for common tasks in Quarto"
+
+author:
+  name: Luke Hearon  # test
+  affiliation: The Ohio State University
+  orcid: 0009-0004-3775-0849
+
+format: 
+  html:
+    link-citations: true
+    self-contained: true
+
+execute:
+  echo: false
+  include: false
+  message: false
+  warning: false
+  cache: false
+
+project:
+  execute-dir: project
+
+crossref:
+  fig-title: 'Figure'
+  fig-prefix: 'Fig.'
+  fig-labels: arabic
+  title-delim: '.'
+
+csl: 'journal-of-insect-science.csl'
+bibliography: references.bib
+
+# this adds padding around figures
+# I'm just doing this for aesthetics of the rendered document,
+# and wouldn't use it for a manuscript.
+include-in-header: 
+  - text: |
+      <style>figure { padding: 2em 0 2em 0; }</style> 
+---
+
+# markdown
+
+Quarto uses markdown formatting, which is a little clunkier than using a rich-text word processor. RStudio has a "Visual" version of the quarto editor, which offers GUI and shortcut interfaces to common operations with a toolbar at top. I tend to prefer writing my body text in the Visual editor and my code blocks in the Source editor. Visual is just an interface to the Source, so if your document isn't looking how you expected, check out the Source setting.
+
+Instructions for Quarto Markdown basics can be found [in the Quarto documentation](https://quarto.org/docs/authoring/markdown-basics.html) better than I could write here. I'll use this document to highlight more obscure operations common to manuscript writing.
+
+# knitr setup
+
+Quarto documents
+
+The code block below will change the knittr settings for *all* following code blocks. These are my default settings for any manuscript (but ignore the `#| include: true` and `#| echo: true`, that's just for this cheat sheet).
+
+## cache
+
+cache carefully; when this option is TRUE (the default), knitr saves the results of each code block and does NOT re-run code unless it detects a difference within the block itself. E.g., updating data will not update the graphs, because the graphing code did not change. Caching is nice when working with a data-intensive manuscript, but you're probably better off ignoring it until you know you need it
+
+For the sake of this cheat sheet, I'm going to set the knitr options `echo` and `include` to `TRUE` as this will let you see my code, but you don't want to do this for a manuscript. If you look at the source code for this document (the .qmd file), you'll see that I set:
+
+```         
+execute:
+  echo: false
+  include: false
+```
+
+That's my default for manuscripts, and you can use the execute: header for setting any other knitr options you like.
+
+```{r show_all}
+#| include: true
+#| echo: true
+knitr::opts_chunk$set(echo=T)
+knitr::opts_chunk$set(include=T)
+```
+
+# code setup
+
+I like to load all of my packages in a single code block. It makes it easier to remember what my dependencies are. Loading packages in one code block will load them for all blocks. You could also use the `package::function` format each time you call a function (`ggplot2::ggplot()`), which makes sure you aren't loading any packages you don't need and are sure that you're using the function that you mean to use. It's just more cluttered to read.
+
+```{r setup_packages}
+library(ggplot2)
+library(dplyr)
+```
+
+I also load my data in a single block. Normally these would be `read.csv()` and `readRDS` calls, but since I want this document to be standalone, we'll use built-in data.
+
+```{r setup_data}
+data("iris")
+```
+
+Usually I put the code blocks for models, plots, and tables within the results section they belong to. For this cheat sheet, we'll just load them in here.
+
+```{r setup_models}
+model_petals <- lm(Petal.Length ~ Species + Petal.Width, data=iris)
+```
+
+# figures and tables
+
+Quarto code blocks can be named. For most of our code blocks, we can choose whatever name we want. You can even opt to leave the name blank, but it makes troubleshooting a lot more difficult; if an error occurs, knitr will report the bad block by name, such as: `Quitting from lines 90-91 [setup_models]`.
+
+However, if you want to make in-text references to tables and figures, their code blocks **must** have name that are prefixed with "tbl-" and "fig-" respectively. See the names for the following table and figure in the Quarto (.qmd) document, since they're not visible in the rendered (html, pdf, doc) documents.
+
+```{r tbl-species}
+#| tbl-cap: 'Morphometrics of sepals and petals for species. Results are given as a disorganized mess.'
+#| include: True
+# if you use my default header, where include is set to false across the document, you'll need to set
+# the headers for each table and figure to include: true
+
+table_species <- iris %>% 
+  group_by(Species) %>% 
+  summarize(
+    'sepal_length_mean' = mean(Sepal.Length),
+    'sepal_length_se' = sd(Sepal.Length)/sqrt(n()),
+    
+    'sepal_width_mean' = mean(Sepal.Width),
+    'sepal_width_se' = sd(Sepal.Width)/sqrt(n()),
+    
+    'petal_length_mean' = mean(Petal.Length),
+    'petal_length_se' = sd(Petal.Length)/sqrt(n()),
+    
+    'petal_width_mean' = mean(Petal.Width),
+    'petal_width_se' = sd(Petal.Width)/sqrt(n())
+)
+
+
+knitr::kable(table_species)  # produces a nicely formatted table
+```
+
+The above table is a bit of a mess. It represents the R object, but we want something formatted for humans. Let's do some cleaning.
+
+```{r tbl-species_clean}
+#| tbl-cap: 'Morphometrics of sepals and petals for species. Results are given as mean±SE.'
+#| tbl-cap-location: bottom
+#| include: true
+
+table_species_clean <- table_species %>% 
+  mutate(
+    # for each column...
+    across(
+      # with a name ending in _mean
+      ends_with('_mean'),
+      ~ .x %>%  # take the value
+        round(1) %>%  # round it to 1 decimal place
+        format(nsmall = 1) # and format it as text with 1 decimal place (including trailing 0s)
+    ),
+    
+    # same as above, but for standard errors, formatting to two decimal palces
+    across(
+      ends_with('_se'),
+            ~ .x %>% 
+        round(2) %>% 
+        format(nsmall = 2)
+    )
+  ) %>% 
+  mutate(
+    'species_semantic' = paste0('Iris ', Species),
+    'sepal_length_semantic' = paste0(sepal_length_mean, '±', sepal_length_se),
+    'sepal_width_semantic' = paste0(sepal_width_mean, '±', sepal_width_se),
+    'petal_length_semantic' = paste0(petal_length_mean, '±', petal_length_se),
+    'petal_width_semantic' = paste0(petal_width_mean, '±', petal_width_se)
+  ) %>% 
+  select(ends_with('_semantic')) 
+
+table_species_clean %>%
+  knitr::kable(
+    format = 'markdown',
+    align = "lcccc",
+    col.names = c("Species", "Length", "Width", "Length", "Width")
+  ) %>%
+  kableExtra::add_header_above(c(" " = 1, "Sepal" = 2, "Petal" = 2))
+
+```
+
+As you can see, cleaning the table requires a bit of work, and it's still not quite there. The species names should be italicized and the units should be included below the column names, but doing this with kableExtra requires some dumb workarounds that I don't want to get into here.
+
+Annoyingly, the journal is probably going to make us submit a .doc (to be *re*-converted into an HTML file! Kafka eat your heart out), which can mess up some of our careful formatting. You might decide that you're better off doing the formatting by hand in the final document. This is entirely reasonable.
+
+Anyways, now we can reference the tables in our text! Tables can be referenced with the pattern "\@tbl-name". For example, "\@tbl-species_clean" produces @tbl-species_clean when rendered. How about some figures?
+
+```{r fig-morphometrics}
+#| include: True
+#| fig-cap: "Relationship between sepal length and and petal length within species."
+#| fig-width: 6
+#| fig-height: 4
+#| fig-dpi: 150
+
+ggplot(
+  iris,
+  aes(
+    x = Sepal.Length,
+    y = Petal.Length,
+    color = Species
+  )
+) +
+  geom_point() +
+  geom_smooth(method='lm', se=F)
+```
+
+```{r fig-area}
+#| include: True
+#| fig-cap: "Estimate of petal area by species. If leaves were perfectly rectangular."
+#| fig-width: 6
+#| fig-height: 4
+#| fig-dpi: 150
+
+ggplot(
+  iris,
+  aes(
+    y = Petal.Length*Petal.Width,
+    x = Species,
+    fill = Species
+  )
+) +
+  geom_boxplot(alpha=0.4) +
+  ylab('leaf area') +
+  theme(legend.position = 'none')  # drop color legend, we already have the X axis
+```
+
+Much the same, we can reference this figures as "\@fig-name". Writing "\@fig-morphometrics" in the Source produces @fig-morphometrics in the rendered document.
+
+Note that we don't have to prescribe the table and numbering in the captions or in the text. If we decide to remove a table, all of the later tables will be decremented by 1. If we add a figure, Figure 2 becomes Figure 3. No more Ctrl+Hing through the document. Try it for yourself! Move \@fig-morphometrics after \@fig-area and re-render, or drop or add a table.
