@@ -31,23 +31,10 @@ csl: 'journal-of-insect-science.csl'
 bibliography: references.bib
 ---
 
-```{r setup_general}
-# suppresses messages/warnings from ggplot and other packages
-# otherwise these print above your plots
-knitr::opts_chunk$set(message=F)
-knitr::opts_chunk$set(warning=F)
-
-# cache carefully; when this option is TRUE,
-# knitr saves the results of each code block
-# and does NOT re-run code unless it detects
-# a difference within the block itself. E.g.,
-# updating data will not update the graphs,
-# because the graphing code did not change.
-# Useful when working with a data-intensive manuscript.
-knitr::opts_chunk$set(cache=F)
-
+```{r setup_libraries}
 library(dplyr)
 library(ggplot2)
+library(emmeans)
 ```
 
 ```{r setup_data}
@@ -58,11 +45,20 @@ data <- read.csv('./data/01_join.csv')
 model_sleep <- readRDS('./outputs/models/sleep.rds')
 model_enjoyment <- readRDS('./outputs/models/enjoyment.rds')
 
-p_manuscript_sleep <- car::Anova(model_sleep, type=3) %>% 
+p_overdue_sleep <- car::Anova(model_sleep, type=3) %>% 
     .['manuscriptOverDue', 'Pr(>F)']
-
-stat_manuscript_sleep <- car::Anova(model_sleep, type=3) %>% 
+stat_overdue_sleep <- car::Anova(model_sleep, type=3) %>% 
     .['manuscriptOverDue', 'F value']
+
+emmeans_source <- model_enjoyment %>% 
+  emmeans(specs=~source) %>% 
+  summary()
+  
+source_luke_ci <- c(
+  emmeans_source$lower.CL[emmeans_source$source=='Luke'],
+  emmeans_source$upper.CL[emmeans_source$source=='Luke']
+) %>% 
+  round(2)
   
 ```
 
@@ -109,7 +105,7 @@ readRDS('./outputs/plots/sleep_distribution.rds') +
   guides(fill=guide_legend(title='Overdue Manuscript?'))
 ```
 
-In total `r nrow(data)` students were interviewed. Interviewees averaged `r round(mean(data$sleep_hours), 1)`±`r round(sd(data$sleep_hours), 2)` hours of sleep the night before the study, as shown in @fig-sleep. Being overdue on a manuscript draft deadline set by the advisor decreased sleep by `r round(coef(model_sleep)[['manuscriptOverDueyes']], 2)` hours on average (F = `r round(stat_manuscript_sleep, 1)`, `r round_p(p_manuscript_sleep)`). `r mean(data$manuscriptOverDue=='yes') %>% round(2) %>% {.*100}`% of students had overdue manuscripts.
+In total `r nrow(data)` students were interviewed. Interviewees averaged `r round(mean(data$sleep_hours), 1)`±`r round(sd(data$sleep_hours), 2)` hours of sleep the night before the study, as shown in @fig-sleep. Being overdue on a manuscript draft deadline set by the advisor decreased sleep by `r round(coef(model_sleep)[['manuscriptOverDueyes']], 2)` hours on average (F = `r round(stat_overdue_sleep, 1)`, `r round_p(p_overdue_sleep)`). `r mean(data$manuscriptOverDue=='yes') %>% round(2) %>% {.*100}`% of students had overdue manuscripts.
 
 ```{r fig-enjoyment}
 #| fig-cap: 'Effects of sleep and source on reported enjoyment of coffee among graduate students. Sleep deficit is calculated as the difference between the number of hours of reported sleep and 8 hours.'
@@ -121,7 +117,7 @@ readRDS('./outputs/plots/sleep_enjoyment.rds') +
   xlab('sleep deficit (hours)')
 ```
 
-Graduate students were found to drink fairly crappy coffee, with an average enjoyment score of `r round(mean(data$enjoyment), 1)`±`r round(sd(data$enjoyment), 1)` out of 10 (see @fig-enjoyment).
+Graduate students were found to drink fairly crappy coffee, with an average enjoyment score of `r round(mean(data$enjoyment), 1)`±`r round(sd(data$enjoyment), 1)` out of 10 (see @fig-enjoyment). Luke's coffee outclassed all others, with a 95% confidence interval of (`r source_luke_ci[1]`, `r source_luke_ci[2]`).
 
 # Conflict of Interest
 
