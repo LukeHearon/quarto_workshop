@@ -3,6 +3,7 @@
 .RData
 .Ruserdata
 
+#data/  # in a real git repo, you'll want to uncomment this (remove the # from the start of this line); you generally don't want to run version control on data files, just scripts.
 local/
 outputs/
 
