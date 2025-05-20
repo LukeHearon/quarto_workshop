@@ -46,13 +46,11 @@ Instructions for Quarto Markdown basics can be found [in the Quarto documentatio
 
 # knitr setup
 
-Quarto documents
-
 The code block below will change the knittr settings for *all* following code blocks. These are my default settings for any manuscript (but ignore the `#| include: true` and `#| echo: true`, that's just for this cheat sheet).
 
 ## cache
 
-cache carefully; when this option is TRUE (the default), knitr saves the results of each code block and does NOT re-run code unless it detects a difference within the block itself. E.g., updating data will not update the graphs, because the graphing code did not change. Caching is nice when working with a data-intensive manuscript, but you're probably better off ignoring it until you know you need it
+Cache carefully; when the cache option is set to True, knitr saves the results of each code block and does NOT re-run code unless it detects a difference within the block itself. E.g., updating data will not update the graphs, because the graphing code did not change. Caching is nice when working with a data-intensive manuscript, but you're probably better off ignoring it until you know you need it
 
 For the sake of this cheat sheet, I'm going to set the knitr options `echo` and `include` to `TRUE` as this will let you see my code, but you don't want to do this for a manuscript. If you look at the source code for this document (the .qmd file), you'll see that I set:
 
