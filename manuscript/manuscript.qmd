@@ -8,18 +8,22 @@ author:
 
 format: 
   html:
-    link-citations: true
+    link-citations: false
     self-contained: true
 
 execute:
   echo: false
   include: false
+  message: false
+  warning: false
+  cache: false
 
 project:
   execute-dir: project
 
 crossref:
   fig-title: 'Figure'
+  fig-prefix: 'Fig.'
   fig-labels: arabic
   title-delim: '.'
 
@@ -27,10 +31,100 @@ csl: 'journal-of-insect-science.csl'
 bibliography: references.bib
 ---
 
+```{r setup_general}
+# suppresses messages/warnings from ggplot and other packages
+# otherwise these print above your plots
+knitr::opts_chunk$set(message=F)
+knitr::opts_chunk$set(warning=F)
+
+# cache carefully; when this option is TRUE,
+# knitr saves the results of each code block
+# and does NOT re-run code unless it detects
+# a difference within the block itself. E.g.,
+# updating data will not update the graphs,
+# because the graphing code did not change.
+# Useful when working with a data-intensive manuscript.
+knitr::opts_chunk$set(cache=F)
+
+library(dplyr)
+library(ggplot2)
+```
+
+```{r setup_data}
+data <- read.csv('./data/01_join.csv')
+```
+
+```{r setup_models}
+model_sleep <- readRDS('./outputs/models/sleep.rds')
+model_enjoyment <- readRDS('./outputs/models/enjoyment.rds')
+
+p_manuscript_sleep <- car::Anova(model_sleep, type=3) %>% 
+    .['manuscriptOverDue', 'Pr(>F)']
+
+stat_manuscript_sleep <- car::Anova(model_sleep, type=3) %>% 
+    .['manuscriptOverDue', 'F value']
+  
+```
+
 # Introduction
+
+Abuse of caffeine is estimated to increase scientific productivity by roughly 130% in graduate students [@hearon25; @lee2009], but may have detrimental effects on sleep [@kerpershoek2018]. However, we hypothesize that the first coffee after a night of no sleep absolutely *slaps*. To confirm this hypothesis, we conducted a survey-based study on graduate students at The Ohio State University.
 
 # Methods
 
+We sourced ground coffee from three sources: Kroger Private Selection, Stauf's Coffee Roasters, and author LH's personal supply. Coffee was additionally collected from an unnamed national entomological society's annual conference in accordance with methods described by @mouton2016. In brief, the authors donned hi-viz vests, selected an urn of coffee in a randomized block design, and made a run for the door. 8 of 16 urns were successfully collected in this manner. Gas chromatography–Tandem mass spectrometry analysis (GC-MS/MS) revealed no compounds known to science in the Conference coffee, but it was assumed to qualify as coffee under a colloquial definition.
+
+Graduate students were ~~lured~~ recruited to the study via the advertisement of free caffeine. Students were given a questionnaire regarding their graduate work and asked to report the hours of sleep they got the night before the study. A thermos of freshly brewed coffee was given to each student in a randomized manner to drink across the course of the workday. After the workday, students were asked to score their enjoyment of the coffee on a scale of 1–10. Students who stated a preference for yerba matte over coffee were ejected from the study and from polite society.
+
 # Results
 
-# Discussion
+```{r results_utils}
+round_p <- function(p){
+  p_digit_max <- 3 # don't report any more decimals than p<0.001
+  p_min_str <- format(10^(-p_digit_max), scientific=F)
+
+  tofirst <- p %>% 
+    signif(1) %>% 
+    format(scientific=F)
+  
+  if(nchar(tofirst) > (p_digit_max+2)){pout <- paste0('*p* < ', p_min_str)} else if(nchar(tofirst) < 4){
+    pout <- p %>% 
+      round(2) %>% 
+      format(nsmall=2) %>% 
+      {paste0('*p* = ', .)}
+  } else {pout <- paste0('*p* = ', tofirst)}
+  
+  return(pout)
+}
+```
+
+```{r fig-sleep}
+#| fig-cap: 'Distribution of sleep reported the night before the experiment.'
+#| fig-width: 6
+#| fig-height: 2.5
+#| include: True
+
+readRDS('./outputs/plots/sleep_distribution.rds') +
+  # since we saved as rds instead of png, we can keep modifying with ggplot2!
+  guides(fill=guide_legend(title='Overdue Manuscript?'))
+```
+
+In total `r nrow(data)` students were interviewed. Interviewees averaged `r round(mean(data$sleep_hours), 1)`±`r round(sd(data$sleep_hours), 2)` hours of sleep the night before the study, as shown in @fig-sleep. Being overdue on a manuscript draft deadline set by the advisor decreased sleep by `r round(coef(model_sleep)[['manuscriptOverDueyes']], 2)` hours on average (F = `r round(stat_manuscript_sleep, 1)`, `r round_p(p_manuscript_sleep)`). `r mean(data$manuscriptOverDue=='yes') %>% round(2) %>% {.*100}`% of students had overdue manuscripts.
+
+```{r fig-enjoyment}
+#| fig-cap: 'Effects of sleep and source on reported enjoyment of coffee among graduate students. Sleep deficit is calculated as the difference between the number of hours of reported sleep and 8 hours.'
+#| fig-width: 6
+#| fig-height: 4
+#| include: True
+
+readRDS('./outputs/plots/sleep_enjoyment.rds') +
+  xlab('sleep deficit (hours)')
+```
+
+Graduate students were found to drink fairly crappy coffee, with an average enjoyment score of `r round(mean(data$enjoyment), 1)`±`r round(sd(data$enjoyment), 1)` out of 10 (see @fig-enjoyment).
+
+# Conflict of Interest
+
+The authors declare that they were highly interested in proving Luke's coffee to be superior to all others, but strenuously deny that this affected the results of the study. Author LH was reimbursed at a rate of \$15 per cup of coffee furnished; this value was initially found to be inappropriately high by the IRB, but the judgement was reversed after author LH provided honey lattes to the IRB.
+
+# Works Cited
